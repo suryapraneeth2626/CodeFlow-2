@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeFlow - Ultimate Developer Planner</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-theme="red">
+    <div id="vanta-bg" aria-hidden="true"></div>
+
+    <audio id="notif-sound" src="notification.mp3" preload="auto"></audio>
+    <audio id="focus-audio-player" loop preload="auto"></audio>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <div id="auth-container" class="auth-wrapper active">
+        <div class="card glass auth-card" id="login-view">
+            <div style="text-align:center; margin-bottom: 24px;">
+                <i class="fa-solid fa-code logo-icon" style="font-size: 2.5rem; margin-bottom: 12px;"></i>
+                <h2>Welcome to CodeFlow</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">Sign in to sync your deep work sessions.</p>
+            </div>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="login-user" class="form-input" required placeholder="developer@gmail.com" pattern=".+@gmail\.com$" title="Please use a @gmail.com address">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-pass" class="form-input" required placeholder="••••••••" minlength="8" title="Password must be at least 8 characters long">
+                </div>
+                <button type="submit" class="btn-primary" style="width:100%; margin-top:8px;">Access Terminal</button>
+            </form>
+        </div>
+
+        <div class="card glass auth-card" id="onboarding-view" style="display:none;">
+            <div style="text-align:center; margin-bottom: 24px;"><h2>Set Up Your Environment</h2><p style="color:var(--text-muted); font-size:0.9rem;">Configure your local session.</p></div>
+            <form onsubmit="handleOnboarding(event)">
+                <div class="form-group"><label>Display Name</label><input type="text" id="onboard-name" class="form-input" required></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Age</label><input type="number" id="onboard-age" class="form-input" required min="10" max="99"></div>
+                    <div class="form-group"><label>Gender</label><select id="onboard-gender" class="form-input" required><option value="">Select...</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other / Prefer not to say</option></select></div>
+                </div>
+                <div class="form-group"><label>Primary Focus</label><input type="text" id="onboard-focus" class="form-input" placeholder="e.g., University, Full-Stack" required></div>
+                <button type="submit" class="btn-primary" style="width:100%; margin-top:8px;">Initialize Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-container" style="display:none;">
+        <header>
+            <div class="logo"><i class="fa-solid fa-code logo-icon"></i> CodeFlow</div>
+            <nav class="nav-links">
+                <button class="active" onclick="switchTab('dashboard')">Home</button>
+                <button onclick="switchTab('planner')">Planner</button>
+                <button onclick="switchTab('focus')">Deep Work</button>
+                <button onclick="switchTab('network')">Community</button>
+                <button onclick="switchTab('analytics')">Insights</button>
+                <button onclick="switchTab('settings')">Settings</button>
+            </nav>
+            <div class="nav-actions">
+                <div class="badge"><i class="fa-solid fa-fire"></i> <span id="nav-streak">0</span></div>
+                <div class="badge"><i class="fa-solid fa-bolt"></i> <span id="nav-level">Lv.1</span></div>
+                <button class="icon-btn" onclick="toggleDarkMode()"><i id="dark-mode-icon" class="fa-solid fa-moon"></i></button>
+                
+                <div style="position:relative;">
+                    <button class="icon-btn" onclick="toggleNotif()"><i class="fa-solid fa-bell"></i></button>
+                    <span id="notif-dot" style="display:none; position:absolute; top:-2px; right:-2px; width:10px; height:10px; background:var(--danger-red); border-radius:50%;"></span>
+                    <div id="notif-dropdown" class="glass" style="display:none; position:absolute; top:45px; right:0; width:300px; padding:16px; border-radius:var(--radius-md); box-shadow:var(--card-shadow); z-index:200;">
+                        <h4 style="margin-bottom:12px; font-size:0.95rem;">Notifications</h4>
+                        <div id="notif-list" style="display:flex; flex-direction:column; gap:8px;">
+                            <div style="font-size:0.85rem; padding:8px; background:var(--card-hover-bg); border-radius:4px;"><strong style="color:var(--primary)">System:</strong> Daily study streak active!</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-primary" style="padding: 8px 16px; border-radius: 4px;" onclick="switchTab('settings')"><i class="fa-solid fa-user"></i> <span id="profile-btn-name">Profile</span></button>
+            </div>
+        </header>
+
+        <main>
+            <section id="dashboard" class="page-view active">
+                <div class="hero-section animate-up stagger-1">
+                    <h1 class="hero-title">Welcome <span>Back</span></h1>
+                    <p class="hero-subtitle">Your environment is ready. Enter the flow state, execute your backlog, and level up your engineering skills.</p>
+                    
+                    <div class="hero-buttons">
+                        <button class="btn-primary" onclick="switchTab('focus')"><i class="fa-solid fa-brain"></i> Deep Work Portal</button>
+                        <button class="btn-secondary" onclick="switchTab('analytics')"><i class="fa-solid fa-chart-line"></i> Analytics Portal</button>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid animate-up stagger-2">
+                    <div class="card glass interactive-card"><div class="card-header"><h3>Today's Tasks</h3></div><div class="task-list" id="dash-task-list"></div></div>
+                    <div class="card glass interactive-card"><div class="card-header"><h3>Completed Sessions</h3><i class="fa-solid fa-layer-group" style="color:var(--primary); font-size: 1.2rem;"></i></div><div class="task-list" id="dash-session-list"></div></div>
+                </div>
+            </section>
+
+            <section id="planner" class="page-view">
+                <h1 class="page-title animate-up stagger-1">Mastery Planner</h1>
+                <p class="page-subtitle animate-up stagger-1">Schedule sprints and track your learning goals effectively.</p>
+                <div class="card glass animate-up stagger-2" style="margin-bottom: 32px;">
+                    <div class="card-header" style="border-bottom: none;">
+                        <div style="display:flex; align-items: center; gap: 16px;">
+                            <div style="width: 48px; height: 48px; background: var(--primary-light); color: var(--primary); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 1.4rem;"><i class="fa-solid fa-rocket"></i></div>
+                            <div><h3 style="margin: 0; font-size: 1.3rem;">Course Goals</h3><span style="font-size: 0.95rem; color: var(--text-muted);">Track tutorials and certifications</span></div>
+                        </div>
+                        <button class="btn-primary" onclick="openModal('goal-modal')"><i class="fa-solid fa-plus"></i> New Goal</button>
+                    </div>
+                    <div id="goals-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; margin-top: 16px;"></div>
+                </div>
+                <div class="card glass animate-up stagger-3" style="margin-bottom: 24px;">
+                    <div class="card-header"><h3>Sprint Calendar</h3></div><div class="planner-carousel" id="planner-days"></div>
+                </div>
+                <div class="dashboard-grid animate-up stagger-4">
+                    <div class="card glass interactive-card"><div class="card-header"><h3>Issues for Selected Day</h3><button class="icon-btn" onclick="openModal('task-modal')"><i class="fa-solid fa-plus"></i></button></div><div class="task-list" id="planner-task-list"></div></div>
+                    <div class="card glass interactive-card"><div class="card-header"><h3>Upcoming in Sprint</h3></div><div class="task-list" id="upcoming-task-list"><div style="text-align:center; padding: 30px; color:var(--text-muted); font-weight: 500;">Backlog is empty.</div></div></div>
+                </div>
+            </section>
+
+            <section id="focus" class="page-view">
+                <h1 class="page-title animate-up stagger-1">Deep Work</h1>
+                <p class="page-subtitle animate-up stagger-1">Zero distractions. Write clean code. Enter the flow state.</p>
+                <div class="dashboard-grid">
+                    <div class="card glass interactive-card" id="focus-fs-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px; position:relative;">
+                        <button id="fs-btn" class="icon-btn" style="position:absolute; top:24px; right:24px;" onclick="toggleFullScreen()"><i class="fa-solid fa-expand"></i></button>
+                        
+                        <div style="margin-bottom: 20px; font-weight: 600; color: var(--primary); font-size: 1.2rem;" id="active-focus-task">Select a task to begin</div>
+
+                        <div class="timer-display" id="time-display">25:00</div>
+                        <div style="margin-bottom: 40px; color: var(--text-muted); font-weight:500; font-size:1rem; text-transform: uppercase; letter-spacing: 1px;">Session <span id="session-count-display" style="font-weight: 700;">1</span></div>
+                        
+                        <div class="timer-controls">
+                            <button class="icon-btn" style="width:50px; height:50px; font-size:1.2rem;" onclick="resetTimer()"><i class="fa-solid fa-rotate-right"></i></button>
+                            <button class="play-btn" id="play-pause-btn" onclick="handleFocusPlayClick()"><i class="fa-solid fa-play" style="margin-left:4px;"></i></button>
+                            <button class="icon-btn" style="width:50px; height:50px; font-size:1.2rem;" onclick="finishSessionEarly()"><i class="fa-solid fa-check" style="color:var(--primary)"></i></button>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction: column; gap: 24px;">
+                        <div class="card glass interactive-card">
+                            <div class="card-header"><h3>Today's Focus Impact</h3></div>
+                            <div style="display:flex; flex-direction:column; gap:16px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 20px; background:var(--card-hover-bg); border-radius:var(--radius-sm); border:1px solid var(--card-border);">
+                                    <span style="font-weight:500; color:var(--text-main)"><i class="fa-solid fa-code" style="color:var(--primary); margin-right:8px;"></i> Coding Time</span>
+                                    <strong style="font-size:1.2rem; font-family: var(--font-numbers);" id="side-study-time">0m</strong>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 20px; background:var(--card-hover-bg); border-radius:var(--radius-sm); border:1px solid var(--card-border);">
+                                    <span style="font-weight:500; color:var(--text-main)"><i class="fa-solid fa-layer-group" style="color:var(--text-muted); margin-right:8px;"></i> Blocks Done</span>
+                                    <strong style="font-size:1.2rem; font-family: var(--font-numbers);" id="side-sessions">0</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="network" class="page-view">
+                <h1 class="page-title animate-up stagger-1">Developer Community</h1>
+                <p class="page-subtitle animate-up stagger-1">Connect with peers, review code, and build together in a single system.</p>
+                <div class="dashboard-grid animate-up stagger-2">
+                    <div style="display:flex; flex-direction: column; gap: 24px;">
+                        <div class="card glass interactive-card">
+                            <div class="card-header"><h3><i class="fa-solid fa-user-plus" style="margin-right:8px; color:var(--primary);"></i> Add Developer</h3></div>
+                            <div style="display:flex; gap:12px;">
+                                <input type="text" id="friend-code" class="form-input" placeholder="e.g., DEV-1234">
+                                <button class="btn-primary" onclick="addFriend()">Add</button>
+                            </div>
+                        </div>
+                        <div class="card glass interactive-card">
+                             <div class="card-header"><h3>Connections List</h3></div>
+                             <div id="friends-list" style="display:flex; flex-direction:column; gap:16px;">
+                                 <div style="color:var(--text-muted); text-align:center; padding:30px; font-weight: 500;">No connections added yet.</div>
+                             </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card glass interactive-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-server" style="margin-right:8px; color:var(--primary);"></i> Active Chat Rooms</h3>
+                            <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.9rem;" onclick="openModal('room-modal')">Host New</button>
+                        </div>
+                        <div style="display:flex; flex-direction: column; gap: 16px;" id="room-list">
+                            <div class="room-item">
+                                <div><strong style="font-size:1rem; color: var(--text-main);">#FullStack-Grind</strong><br><span style="color:var(--text-muted);font-size:0.85rem;"><i class="fa-solid fa-users"></i> 12/50 online</span></div>
+                                <button class="btn-primary" style="padding:6px 16px; font-size: 0.9rem;" onclick="joinRoom(this)">Join Chat</button>
+                            </div>
+                            <div class="room-item">
+                                <div><strong style="font-size:1rem; color: var(--text-main);">#Algorithm-Help</strong><br><span style="color:var(--text-muted);font-size:0.85rem;"><i class="fa-solid fa-users"></i> 8/20 online</span></div>
+                                <button class="btn-primary" style="padding:6px 16px; font-size: 0.9rem;" onclick="joinRoom(this)">Join Chat</button>
+                            </div>
+                            <div class="room-item">
+                                <div><strong style="font-size:1rem; color: var(--text-main);">#Silent-Study-Zone</strong><br><span style="color:var(--text-muted);font-size:0.85rem;"><i class="fa-solid fa-users"></i> 34/100 online</span></div>
+                                <button class="btn-primary" style="padding:6px 16px; font-size: 0.9rem;" onclick="joinRoom(this)">Join Chat</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="analytics" class="page-view">
+                <h1 class="page-title animate-up stagger-1">Developer Insights</h1>
+                <div class="stats-top-grid animate-up stagger-2">
+                    <div class="card glass interactive-card stat-card-mini"><div class="lbl"><i class="fa-solid fa-clock" style="color:var(--primary);"></i> Time Logged</div><div class="val" id="stat-weekly-time">0h 0m</div></div>
+                    <div class="card glass interactive-card stat-card-mini"><div class="lbl"><i class="fa-solid fa-stopwatch" style="color:var(--primary);"></i> Avg Block</div><div class="val" id="stat-avg-session">0 min</div></div>
+                    <div class="card glass interactive-card stat-card-mini"><div class="lbl"><i class="fa-solid fa-check-double" style="color:var(--primary);"></i> Tasks Done</div><div class="val" id="stat-tasks-done">0</div></div>
+                    <div class="card glass interactive-card stat-card-mini"><div class="lbl"><i class="fa-solid fa-code-commit" style="color:var(--primary);"></i> Deep Blocks</div><div class="val" id="stat-total-sessions">0</div></div>
+                </div>
+                <div class="dashboard-grid animate-up stagger-3" style="grid-template-columns: 2fr 1.2fr;">
+                    <div class="card glass interactive-card">
+                        <div class="card-header"><h3>Weekly Code Activity</h3></div>
+                        <div style="position: relative; height:250px; width:100%;">
+                            <canvas id="weeklyActivityChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card glass interactive-card"><div class="card-header"><h3>Time by Tech Stack</h3></div><div class="doughnut-wrapper"><div class="doughnut-chart"></div></div></div>
+                </div>
+                <div class="card glass interactive-card animate-up stagger-4" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <h3>Commit Heatmap (Last 30 Days)</h3>
+                        <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">Less <i class="fa-solid fa-square heat-0"></i><i class="fa-solid fa-square heat-1"></i><i class="fa-solid fa-square heat-2"></i><i class="fa-solid fa-square heat-3"></i> More</span>
+                    </div>
+                    <div class="heatmap-grid" id="heatmap-container"></div>
+                </div>
+            </section>
+
+            <section id="settings" class="page-view">
+                <h1 class="page-title animate-up stagger-1">Configuration</h1>
+                <p class="page-subtitle animate-up stagger-1">Manage your profile, preferences, and environment themes.</p>
+                
+                <div class="settings-layout animate-up stagger-2">
+                    <div class="settings-sidebar glass card">
+                        <button class="settings-tab active" onclick="switchSettingsTab('set-account')"><i class="fa-solid fa-user"></i> Account Profile</button>
+                        <button class="settings-tab" onclick="switchSettingsTab('set-academic')"><i class="fa-solid fa-graduation-cap"></i> Academic Prefs</button>
+                        <button class="settings-tab" onclick="switchSettingsTab('set-notif')"><i class="fa-solid fa-bell"></i> Notifications</button>
+                        <button class="settings-tab" onclick="switchSettingsTab('set-theme')"><i class="fa-solid fa-palette"></i> Appearance</button>
+                    </div>
+
+                    <div class="settings-content glass card">
+                        <div id="set-account" class="settings-panel active">
+                            <h3 style="margin-bottom: 24px; border-bottom: 1px solid var(--card-border); padding-bottom: 12px;">Account Settings</h3>
+                            <div class="form-row">
+                                <div class="form-group"><label>Display Name</label><input type="text" class="form-input" id="prof-name" value="Developer_01"></div>
+                                <div class="form-group"><label>Email Address</label><input type="email" class="form-input" id="prof-email" value="developer@gmail.com"></div>
+                            </div>
+                            <div class="form-group" style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-top:1px solid var(--card-border);">
+                                <div><strong>Two-Factor Authentication</strong><br><span style="font-size:0.85rem; color:var(--text-muted);">Secure account with 2FA</span></div><input type="checkbox" style="width:20px; height:20px;">
+                            </div>
+                            <div style="display:flex; justify-content:space-between; margin-top:32px;">
+                                <button class="btn-secondary" style="color:var(--danger-red); border-color:var(--danger-red);">Delete Account</button>
+                                <button class="btn-primary" onclick="logoutApp()">Log Out</button>
+                            </div>
+                        </div>
+
+                        <div id="set-academic" class="settings-panel">
+                            <h3 style="margin-bottom: 24px; border-bottom: 1px solid var(--card-border); padding-bottom: 12px;">Academic Preferences</h3>
+                            <div class="form-row">
+                                <div class="form-group"><label>Semester Start</label><input type="date" class="form-input"></div>
+                                <div class="form-group"><label>Semester End</label><input type="date" class="form-input"></div>
+                            </div>
+                        </div>
+
+                        <div id="set-notif" class="settings-panel">
+                            <h3 style="margin-bottom: 24px; border-bottom: 1px solid var(--card-border); padding-bottom: 12px;">Reminders & Alerts</h3>
+                            <div class="form-group" style="display:flex; justify-content:space-between; align-items:center; padding:12px 0;"><div><strong>Push Notifications</strong></div><input type="checkbox" checked style="width:20px; height:20px;"></div>
+                            <div class="form-group" style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-top:1px solid var(--card-border);"><div><strong>Sound Effects</strong><br><span style="font-size:0.85rem; color:var(--text-muted);">Chimes on timer finish & popups</span></div><input type="checkbox" id="sound-toggle" checked style="width:20px; height:20px;"></div>
+                        </div>
+
+                        <div id="set-theme" class="settings-panel">
+                            <h3 style="margin-bottom: 24px; border-bottom: 1px solid var(--card-border); padding-bottom: 12px;">App Themes</h3>
+                            <div style="display:flex; gap:16px; flex-wrap: wrap;">
+                                <div class="theme-box" style="background:#DB4D39;" onclick="changeTheme('red')">Code Red</div>
+                                <div class="theme-box" style="background:#41D2EF; color:#121212;" onclick="changeTheme('blue')">Flow Blue</div>
+                                <div class="theme-box" style="background:#4CB572;" onclick="changeTheme('green')">Growth Green</div>
+                                <div class="theme-box" style="background:#263238; border: 1px solid #444;" onclick="changeTheme('mono')">Monochrome</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="focus-setup-modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom:24px; font-size:1.5rem;"><i class="fa-solid fa-headphones" style="color:var(--primary); margin-right: 8px;"></i> Configure Deep Work</h2>
+            <div class="form-group"><label>Course / Task Name</label><input type="text" id="setup-focus-task" class="form-input" placeholder="What are you working on?"></div>
+            <div class="form-row">
+                <div class="form-group"><label>Duration (Minutes)</label><input type="number" id="setup-focus-time" class="form-input" value="25" min="1" max="180"></div>
+                <div class="form-group"><label>Relaxing Audio Track</label>
+                    <select id="setup-focus-audio" class="form-input">
+                        <option value="">No Audio (Silent)</option>
+                        <option value="lofi.mp3">Lofi Beats</option>
+                        <option value="rain.mp3">Heavy Rain</option>
+                        <option value="nature.mp3">Forest Ambient</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+                <button class="btn-secondary" onclick="closeModal('focus-setup-modal')">Cancel</button>
+                <button class="btn-primary" onclick="startFocusSession()"><i class="fa-solid fa-play"></i> Enter Flow State</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="goal-modal"><div class="modal-content"><h2 style="margin-bottom:24px; font-size:1.5rem;"><i class="fa-solid fa-target" style="color:var(--primary); margin-right: 8px;"></i> Set New Goal</h2><div class="form-group"><label>Course</label><input type="text" id="goal-title" class="form-input"></div><div class="form-row"><div class="form-group"><label>Deadline</label><input type="date" id="goal-date" class="form-input"></div><div class="form-group"><label>Modules</label><input type="number" id="goal-total" class="form-input"></div></div><div style="display:flex; justify-content:flex-end; gap:12px; margin-top:16px;"><button class="btn-secondary" onclick="closeModal('goal-modal')">Cancel</button><button class="btn-primary" onclick="saveGoal()">Initialize</button></div></div></div>
+    <div class="modal-overlay" id="task-modal"><div class="modal-content"><h2 style="margin-bottom:24px; font-size:1.5rem;">Add Scheduled Task</h2><div class="form-group"><label>Title</label><input type="text" id="task-title" class="form-input"></div><div class="form-row"><div class="form-group"><label>Date</label><input type="date" id="task-date" class="form-input"></div><div class="form-group"><label>Time (For Alerts)</label><input type="time" id="task-time" class="form-input" required></div></div><div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;"><button class="btn-secondary" onclick="closeModal('task-modal')">Cancel</button><button class="btn-primary" onclick="saveTask()">Save</button></div></div></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
